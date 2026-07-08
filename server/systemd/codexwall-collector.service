@@ -1,0 +1,16 @@
+[Unit]
+Description=Update Codex Limits JSON from Codex CLI
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=codexwall
+Group=codexwall
+WorkingDirectory=/opt/codexwall/server
+EnvironmentFile=/opt/codexwall/server/.env
+ExecStart=/usr/bin/node /opt/codexwall/server/src/collect-codex-limits.mjs
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ReadWritePaths=/opt/codexwall/server/data

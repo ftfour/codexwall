@@ -1,0 +1,8 @@
+<resources>
+    <style name="Theme.CodexWallpaper" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/codex_red</item>
+        <item name="colorPrimaryDark">#000000</item>
+        <item name="colorAccent">@color/codex_red</item>
+        <item name="android:fontFamily">sans</item>
+    </style>
+</resources>

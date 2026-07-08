@@ -1,0 +1,16 @@
+{
+  "name": "codexwall-server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.mjs",
+    "collect": "node src/collect-codex-limits.mjs",
+    "test": "node tests/normalize-rate-limits.mjs && node src/validate-limits.mjs data/limits.json",
+    "test:normalize": "node tests/normalize-rate-limits.mjs",
+    "validate": "node src/validate-limits.mjs data/limits.json"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
