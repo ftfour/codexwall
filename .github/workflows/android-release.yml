@@ -60,11 +60,21 @@ jobs:
           if [ -f app/build/outputs/apk/release/app-release.apk ]; then
             cp app/build/outputs/apk/release/app-release.apk codex-limits-wallpaper-${{ github.ref_name }}.apk
           else
-            cp app/build/outputs/apk/debug/app-debug.apk codex-limits-wallpaper-${{ github.ref_name }}-debug.apk
+            cp app/build/outputs/apk/debug/app-debug.apk codex-limits-wallpaper-${{ github.ref_name }}.apk
           fi
+
+      - name: Remove old APK release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "${{ github.ref_name }}" --json assets --jq '.assets[].name' 2>/dev/null \
+            | grep -E '\.apk$' \
+            | while read -r asset; do
+                gh release delete-asset "${{ github.ref_name }}" "$asset" --yes
+              done
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: codex-limits-wallpaper-${{ github.ref_name }}*.apk
+          files: codex-limits-wallpaper-${{ github.ref_name }}.apk
           generate_release_notes: true
