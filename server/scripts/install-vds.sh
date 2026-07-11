@@ -14,7 +14,11 @@ if ! id "$APP_USER" >/dev/null 2>&1; then
 fi
 
 mkdir -p "$APP_DIR"
-rsync -a --delete --exclude node_modules "$(dirname "$0")/.." "$APP_DIR/server"
+rsync -a --delete \
+  --exclude node_modules \
+  --exclude .env \
+  --exclude data \
+  "$(dirname "$0")/.." "$APP_DIR/server"
 chown -R "$APP_USER:$APP_USER" "$APP_DIR"
 
 if [[ ! -f "$APP_DIR/server/.env" ]]; then

@@ -104,6 +104,36 @@ Check:
 curl http://127.0.0.1:8787/api/codex-limits
 ```
 
+## VDS update without changing config or data
+
+Use this when the server is already installed in `/opt/codexwall/server` and you want to update code/systemd units only. It preserves:
+
+- `/opt/codexwall/server/.env`
+- `/opt/codexwall/server/data/`
+- existing Nginx configuration
+- whether `codexwall-collector.timer` is enabled or disabled
+
+On the VDS, from a fresh checkout or unpacked release:
+
+```bash
+sudo bash server/scripts/update-vds.sh
+```
+
+The script:
+
+1. Backs up the current `.env` and `data/` to `/opt/codexwall/backups/server-update-<timestamp>/`.
+2. Syncs the new `server/` files while excluding `.env`, `data/`, and `node_modules`.
+3. Updates the systemd unit files.
+4. Runs `systemctl daemon-reload`.
+5. Restarts only `codexwall.service`.
+
+Check after update:
+
+```bash
+systemctl status codexwall.service --no-pager
+curl http://127.0.0.1:8787/api/codex-limits
+```
+
 ## Codex CLI on VDS
 
 Install and authenticate Codex CLI under the same user that runs the collector:
