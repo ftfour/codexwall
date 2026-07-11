@@ -5,6 +5,7 @@ This folder contains a tiny dependency-free Node.js server for the Android live 
 It provides:
 
 - `GET /api/codex-limits` for the Android app.
+- `POST /api/codex-limits/refresh` for the Android app/widget manual refresh.
 - `GET/POST /admin` protected by Basic Auth for manual updates from your phone.
 - `POST /internal/limits` for trusted JSON pushes.
 - `collect-codex-limits.mjs`, a systemd-friendly collector that starts `codex app-server`, calls `account/rateLimits/read`, and writes `data/limits.json`.
@@ -52,6 +53,12 @@ The fallback command must print this final JSON shape:
 ```
 
 If automatic collection is not available yet, the server still works through `/admin`.
+
+## Refresh endpoint
+
+`POST /api/codex-limits/refresh` runs the same collector as `collect-codex-limits.mjs`, saves fresh values to `data/limits.json`, and returns the updated JSON. If two refresh requests arrive at the same time, the server shares one in-flight collector run.
+
+The Android app calls this endpoint before `GET /api/codex-limits` when the user taps **Refresh now** or the widget refresh button. If an endpoint does not support `/refresh`, the app falls back to the normal GET behavior.
 
 ## Local run
 

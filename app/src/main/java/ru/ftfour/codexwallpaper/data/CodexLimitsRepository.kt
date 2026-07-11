@@ -9,7 +9,9 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.IOException
+import java.net.URI
 import java.time.Duration
 import java.util.concurrent.TimeUnit
 
@@ -17,9 +19,9 @@ class CodexLimitsRepository(
     private val context: Context,
     private val settingsRepository: SettingsRepository = SettingsRepository(context),
     private val httpClient: OkHttpClient = OkHttpClient.Builder()
-        .callTimeout(12, TimeUnit.SECONDS)
+        .callTimeout(45, TimeUnit.SECONDS)
         .connectTimeout(8, TimeUnit.SECONDS)
-        .readTimeout(8, TimeUnit.SECONDS)
+        .readTimeout(45, TimeUnit.SECONDS)
         .build(),
 ) {
     val wallpaperStateFlow: Flow<WallpaperState> = combine(
@@ -62,6 +64,15 @@ class CodexLimitsRepository(
             .build()
 
         try {
+            if (save) {
+                val refreshed = refreshServerSnapshot(url)
+                if (refreshed != null) {
+                    settingsRepository.saveLimits(refreshed, stale = false)
+                    context.sendBroadcast(Intent(ACTION_CODEX_DATA_CHANGED).setPackage(context.packageName))
+                    return@withContext Result.success(refreshed)
+                }
+            }
+
             httpClient.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) throw IOException("HTTP ${response.code}")
                 val body = response.body?.string().orEmpty()
@@ -77,6 +88,28 @@ class CodexLimitsRepository(
             if (save) settingsRepository.saveError(message)
             Result.failure(t)
         }
+    }
+
+    private fun refreshServerSnapshot(url: String): CodexLimits? {
+        val refreshUrl = refreshEndpointFor(url) ?: return null
+        val request = Request.Builder()
+            .url(refreshUrl)
+            .post(ByteArray(0).toRequestBody(null))
+            .header("Accept", "application/json")
+            .build()
+
+        httpClient.newCall(request).execute().use { response ->
+            if (response.code == 404 || response.code == 405) return null
+            if (!response.isSuccessful) throw IOException("Refresh HTTP ${response.code}")
+            return CodexJson.parseLimits(response.body?.string().orEmpty())
+        }
+    }
+
+    private fun refreshEndpointFor(url: String): String? {
+        val uri = runCatching { URI(url.trim()) }.getOrNull() ?: return null
+        val normalizedPath = uri.path.orEmpty().trimEnd('/')
+        if (normalizedPath != "/api/codex-limits") return null
+        return URI(uri.scheme, uri.userInfo, uri.host, uri.port, "/api/codex-limits/refresh", null, null).toString()
     }
 
     fun isStale(updatedAge: Duration, maxAge: Duration): Boolean = updatedAge > maxAge

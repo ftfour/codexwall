@@ -19,7 +19,7 @@ No Google Play Services, Firebase, Accessibility Service, Notification Listener,
 
 ## Widget and updates
 
-Add the **Codex Limits** widget from the Android launcher widget picker. It uses the same demo/server mode and saved settings as the app. The widget refresh button runs the same configured refresh path as the settings screen.
+Add the **Codex Limits** widget from the Android launcher widget picker. It uses the same demo/server mode and saved settings as the app. The widget refresh button runs the same configured refresh path as the settings screen. For the companion server's `/api/codex-limits` endpoint, manual refresh first calls `POST /api/codex-limits/refresh` so the server checks current Codex limits before the phone saves the returned JSON.
 
 The settings screen can check `ftfour/codexwall` GitHub Releases. If a release tag is newer than the installed `versionName`, the app shows an update button that opens the APK asset when one is attached, or the release page otherwise.
 

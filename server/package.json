@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node src/server.mjs",
     "collect": "node src/collect-codex-limits.mjs",
-    "test": "node tests/normalize-rate-limits.mjs && node src/validate-limits.mjs data/limits.json",
+    "test": "node tests/normalize-rate-limits.mjs && node tests/refresh-endpoint.mjs && node src/validate-limits.mjs data/limits.json",
     "test:normalize": "node tests/normalize-rate-limits.mjs",
     "validate": "node src/validate-limits.mjs data/limits.json"
   },

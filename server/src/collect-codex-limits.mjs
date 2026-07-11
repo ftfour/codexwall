@@ -1,21 +1,28 @@
 import { exec } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { writeLimits } from "./limits.mjs";
 import { normalizeCodexRateLimits, readRateLimitsFromAppServer } from "./codex-app-server-client.mjs";
 
 const execAsync = promisify(exec);
-const command = process.env.CODEX_LIMITS_COMMAND;
-const mode = process.env.CODEX_COLLECTOR_MODE || "app-server";
 
-try {
+export async function collectCodexLimits() {
+  const mode = process.env.CODEX_COLLECTOR_MODE || "app-server";
   const limits = mode === "command"
-    ? await readFromCommand()
+    ? await readFromCommand(process.env.CODEX_LIMITS_COMMAND)
     : await readFromAppServer();
   const saved = await writeLimits(limits);
-  console.log(JSON.stringify(saved));
-} catch (error) {
-  console.error(error.message || String(error));
-  process.exit(1);
+  return saved;
+}
+
+if (fileURLToPath(import.meta.url) === process.argv[1]) {
+  try {
+    const saved = await collectCodexLimits();
+    console.log(JSON.stringify(saved));
+  } catch (error) {
+    console.error(error.message || String(error));
+    process.exit(1);
+  }
 }
 
 async function readFromAppServer() {
@@ -23,7 +30,7 @@ async function readFromAppServer() {
   return normalizeCodexRateLimits(response);
 }
 
-async function readFromCommand() {
+async function readFromCommand(command) {
   if (!command || command.trim() === "") {
     throw new Error("CODEX_LIMITS_COMMAND is empty. Set CODEX_COLLECTOR_MODE=app-server or provide a command that prints limits JSON.");
   }

@@ -1,6 +1,7 @@
 import http from "node:http";
 import crypto from "node:crypto";
 import { URL } from "node:url";
+import { collectCodexLimits } from "./collect-codex-limits.mjs";
 import { readLimits, writeLimits } from "./limits.mjs";
 
 const host = process.env.HOST || "127.0.0.1";
@@ -8,6 +9,7 @@ const port = Number.parseInt(process.env.PORT || "8787", 10);
 const adminUser = process.env.ADMIN_USER || "admin";
 const adminPassword = process.env.ADMIN_PASSWORD || "";
 const internalToken = process.env.INTERNAL_TOKEN || "";
+let refreshPromise = null;
 
 const server = http.createServer(async (req, res) => {
   try {
@@ -19,6 +21,10 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === "GET" && url.pathname === "/api/codex-limits") {
       return sendJson(res, 200, await readLimits());
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/codex-limits/refresh") {
+      return sendJson(res, 200, await refreshLimits());
     }
 
     if (url.pathname === "/admin") {
@@ -54,6 +60,15 @@ const server = http.createServer(async (req, res) => {
 server.listen(port, host, () => {
   console.log(`codexwall server listening on http://${host}:${port}`);
 });
+
+async function refreshLimits() {
+  if (!refreshPromise) {
+    refreshPromise = collectCodexLimits().finally(() => {
+      refreshPromise = null;
+    });
+  }
+  return refreshPromise;
+}
 
 function isAuthorized(req) {
   if (!adminPassword) return false;
