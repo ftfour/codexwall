@@ -5,6 +5,7 @@ import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONObject
+import java.net.URI
 import java.util.concurrent.TimeUnit
 
 data class AppUpdate(
@@ -20,8 +21,9 @@ class AppUpdateRepository(
         .readTimeout(8, TimeUnit.SECONDS)
         .build(),
 ) {
-    suspend fun checkLatestRelease(currentVersion: String): Result<AppUpdate?> = withContext(Dispatchers.IO) {
+    suspend fun checkLatestRelease(currentVersion: String, endpointUrl: String = ""): Result<AppUpdate?> = withContext(Dispatchers.IO) {
         runCatching<AppUpdate?> {
+            checkCompanionServer(currentVersion, endpointUrl)?.let { return@runCatching it }
             val request = Request.Builder()
                 .url(LATEST_RELEASE_URL)
                 .get()
@@ -45,6 +47,40 @@ class AppUpdateRepository(
                 )
             }
         }
+    }
+
+    private fun checkCompanionServer(currentVersion: String, endpointUrl: String): AppUpdate? {
+        val updateUrl = companionUpdateUrl(endpointUrl) ?: return null
+        val request = Request.Builder()
+            .url(updateUrl)
+            .get()
+            .header("Accept", "application/json")
+            .build()
+
+        httpClient.newCall(request).execute().use { response ->
+            if (response.code == 404 || response.code == 405) return null
+            if (!response.isSuccessful) error("App update HTTP ${response.code}")
+            val json = JSONObject(response.body?.string().orEmpty())
+            val version = ReleaseVersion.normalized(json.optString("version"))
+                ?: return null
+            if (!ReleaseVersion.isNewer(version, currentVersion)) return null
+            val downloadUrl = json.optString("apk_url").takeIf { it.isNotBlank() } ?: return null
+            return AppUpdate(
+                version = version,
+                pageUrl = json.optString("page_url", downloadUrl),
+                downloadUrl = downloadUrl,
+            )
+        }
+    }
+
+    private fun companionUpdateUrl(endpointUrl: String): String? {
+        val uri = runCatching { URI(endpointUrl.trim()) }.getOrNull() ?: return null
+        val path = uri.path.orEmpty()
+        val marker = "/api/codex-limits"
+        val index = path.indexOf(marker)
+        if (index < 0) return null
+        val basePath = path.substring(0, index).trimEnd('/')
+        return URI(uri.scheme, uri.userInfo, uri.host, uri.port, "$basePath/app/latest", null, null).toString()
     }
 
     private fun firstApkUrl(json: JSONObject): String? {

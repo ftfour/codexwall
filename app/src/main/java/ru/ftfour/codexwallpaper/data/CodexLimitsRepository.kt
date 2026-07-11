@@ -45,12 +45,13 @@ class CodexLimitsRepository(
         if (settings.dataMode != DataMode.SERVER) {
             return Result.success(settingsRepository.demoLimitsFlow.first())
         }
-        return refreshFromUrl(settings.endpointUrl)
+        return refreshFromUrl(settings.endpointUrl, settings.refreshToken)
     }
 
-    suspend fun testConnection(url: String): Result<CodexLimits> = refreshFromUrl(url, save = false)
+    suspend fun testConnection(url: String, refreshToken: String = ""): Result<CodexLimits> =
+        refreshFromUrl(url, refreshToken, save = false)
 
-    suspend fun refreshFromUrl(url: String, save: Boolean = true): Result<CodexLimits> = withContext(Dispatchers.IO) {
+    suspend fun refreshFromUrl(url: String, refreshToken: String = "", save: Boolean = true): Result<CodexLimits> = withContext(Dispatchers.IO) {
         if (!UrlValidator.isAllowedEndpoint(url, BuildConfigLike.DEBUG)) {
             val error = "Invalid URL. Use HTTPS, or local HTTP in debug builds."
             if (save) settingsRepository.saveError(error)
@@ -65,7 +66,7 @@ class CodexLimitsRepository(
 
         try {
             if (save) {
-                val refreshed = refreshServerSnapshot(url)
+                val refreshed = refreshServerSnapshot(url, refreshToken)
                 if (refreshed != null) {
                     settingsRepository.saveLimits(refreshed, stale = false)
                     context.sendBroadcast(Intent(ACTION_CODEX_DATA_CHANGED).setPackage(context.packageName))
@@ -90,13 +91,16 @@ class CodexLimitsRepository(
         }
     }
 
-    private fun refreshServerSnapshot(url: String): CodexLimits? {
+    private fun refreshServerSnapshot(url: String, refreshToken: String): CodexLimits? {
         val refreshUrl = refreshEndpointFor(url) ?: return null
-        val request = Request.Builder()
+        val builder = Request.Builder()
             .url(refreshUrl)
             .post(ByteArray(0).toRequestBody(null))
             .header("Accept", "application/json")
-            .build()
+        if (refreshToken.isNotBlank()) {
+            builder.header("Authorization", "Bearer ${refreshToken.trim()}")
+        }
+        val request = builder.build()
 
         httpClient.newCall(request).execute().use { response ->
             if (response.code == 404 || response.code == 405) return null
@@ -108,8 +112,9 @@ class CodexLimitsRepository(
     private fun refreshEndpointFor(url: String): String? {
         val uri = runCatching { URI(url.trim()) }.getOrNull() ?: return null
         val normalizedPath = uri.path.orEmpty().trimEnd('/')
-        if (normalizedPath != "/api/codex-limits") return null
-        return URI(uri.scheme, uri.userInfo, uri.host, uri.port, "/api/codex-limits/refresh", null, null).toString()
+        val marker = "/api/codex-limits"
+        if (!normalizedPath.endsWith(marker)) return null
+        return URI(uri.scheme, uri.userInfo, uri.host, uri.port, "$normalizedPath/refresh", null, null).toString()
     }
 
     fun isStale(updatedAge: Duration, maxAge: Duration): Boolean = updatedAge > maxAge

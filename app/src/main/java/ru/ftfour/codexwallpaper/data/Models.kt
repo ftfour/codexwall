@@ -20,6 +20,7 @@ enum class RefreshInterval { FIFTEEN_MINUTES, THIRTY_MINUTES, ONE_HOUR, MANUAL }
 data class WallpaperSettings(
     val dataMode: DataMode = DataMode.DEMO,
     val endpointUrl: String = "",
+    val refreshToken: String = "",
     val accentColor: AccentColor = AccentColor.RED,
     val verticalPosition: VerticalPosition = VerticalPosition.BOTTOM,
     val horizontalAlignment: HorizontalAlignment = HorizontalAlignment.LEFT,

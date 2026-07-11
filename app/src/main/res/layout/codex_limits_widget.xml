@@ -41,87 +41,92 @@
             android:textSize="12sp" />
     </LinearLayout>
 
-    <TextView
-        android:id="@+id/widget_five_label"
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="0dp"
         android:layout_marginTop="16dp"
-        android:includeFontPadding="false"
-        android:text="@string/widget_five_hours"
-        android:textAllCaps="true"
-        android:textColor="#9B9B9B"
-        android:textSize="11sp" />
+        android:layout_weight="1"
+        android:gravity="center"
+        android:orientation="horizontal">
 
-    <TextView
-        android:id="@+id/widget_five_percent"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:includeFontPadding="false"
-        android:textColor="@android:color/white"
-        android:textSize="28sp" />
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical">
 
-    <ProgressBar
-        android:id="@+id/widget_five_progress"
-        style="?android:attr/progressBarStyleHorizontal"
-        android:layout_width="match_parent"
-        android:layout_height="6dp"
-        android:layout_marginTop="7dp"
-        android:max="100"
-        android:progressDrawable="@drawable/widget_progress" />
+            <ImageView
+                android:id="@+id/widget_five_ring"
+                android:layout_width="96dp"
+                android:layout_height="96dp"
+                android:contentDescription="@string/widget_five_hours" />
 
-    <TextView
-        android:id="@+id/widget_five_reset"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:includeFontPadding="false"
-        android:textColor="#B4B4B4"
-        android:textSize="12sp" />
+            <TextView
+                android:id="@+id/widget_five_label"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:gravity="center"
+                android:includeFontPadding="false"
+                android:text="@string/widget_five_hours"
+                android:textAllCaps="true"
+                android:textColor="#9B9B9B"
+                android:textSize="11sp" />
 
-    <TextView
-        android:id="@+id/widget_week_label"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:includeFontPadding="false"
-        android:text="@string/widget_week"
-        android:textAllCaps="true"
-        android:textColor="#9B9B9B"
-        android:textSize="11sp" />
+            <TextView
+                android:id="@+id/widget_five_reset"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="5dp"
+                android:gravity="center"
+                android:includeFontPadding="false"
+                android:textColor="#B4B4B4"
+                android:textSize="11sp" />
+        </LinearLayout>
 
-    <TextView
-        android:id="@+id/widget_week_percent"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:includeFontPadding="false"
-        android:textColor="@android:color/white"
-        android:textSize="28sp" />
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical">
 
-    <ProgressBar
-        android:id="@+id/widget_week_progress"
-        style="?android:attr/progressBarStyleHorizontal"
-        android:layout_width="match_parent"
-        android:layout_height="6dp"
-        android:layout_marginTop="7dp"
-        android:max="100"
-        android:progressDrawable="@drawable/widget_progress" />
+            <ImageView
+                android:id="@+id/widget_week_ring"
+                android:layout_width="96dp"
+                android:layout_height="96dp"
+                android:contentDescription="@string/widget_week" />
 
-    <TextView
-        android:id="@+id/widget_week_reset"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:includeFontPadding="false"
-        android:textColor="#B4B4B4"
-        android:textSize="12sp" />
+            <TextView
+                android:id="@+id/widget_week_label"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:gravity="center"
+                android:includeFontPadding="false"
+                android:text="@string/widget_week"
+                android:textAllCaps="true"
+                android:textColor="#9B9B9B"
+                android:textSize="11sp" />
+
+            <TextView
+                android:id="@+id/widget_week_reset"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="5dp"
+                android:gravity="center"
+                android:includeFontPadding="false"
+                android:textColor="#B4B4B4"
+                android:textSize="11sp" />
+        </LinearLayout>
+    </LinearLayout>
 
     <TextView
         android:id="@+id/widget_footer"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="14dp"
+        android:layout_marginTop="10dp"
         android:includeFontPadding="false"
         android:textColor="#9B9B9B"
         android:textSize="11sp" />

@@ -9,14 +9,22 @@ const port = Number.parseInt(process.env.PORT || "8787", 10);
 const adminUser = process.env.ADMIN_USER || "admin";
 const adminPassword = process.env.ADMIN_PASSWORD || "";
 const internalToken = process.env.INTERNAL_TOKEN || "";
+const refreshToken = process.env.REFRESH_TOKEN || "";
+const refreshMinIntervalSeconds = Number.parseInt(process.env.REFRESH_MIN_INTERVAL_SECONDS || "30", 10);
+const startedAt = new Date();
 let refreshPromise = null;
+let lastRefreshStartedAt = 0;
 
 const server = http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
 
     if (req.method === "GET" && url.pathname === "/health") {
-      return sendText(res, 200, "ok\n");
+      return sendJson(res, 200, await health());
+    }
+
+    if (req.method === "GET" && url.pathname === "/app/latest") {
+      return sendJson(res, 200, latestApp());
     }
 
     if (req.method === "GET" && url.pathname === "/api/codex-limits") {
@@ -24,6 +32,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (req.method === "POST" && url.pathname === "/api/codex-limits/refresh") {
+      if (!isRefreshAuthorized(req, url)) return sendJson(res, 401, { error: "unauthorized" });
       return sendJson(res, 200, await refreshLimits());
     }
 
@@ -62,12 +71,53 @@ server.listen(port, host, () => {
 });
 
 async function refreshLimits() {
+  const now = Date.now();
+  if (!refreshPromise && Number.isFinite(refreshMinIntervalSeconds) && refreshMinIntervalSeconds > 0) {
+    const minIntervalMs = refreshMinIntervalSeconds * 1000;
+    if (now - lastRefreshStartedAt < minIntervalMs) {
+      console.log("codexwall refresh skipped: rate_limited");
+      return readLimits();
+    }
+  }
   if (!refreshPromise) {
+    lastRefreshStartedAt = now;
+    console.log("codexwall refresh started");
+    const started = Date.now();
     refreshPromise = collectCodexLimits().finally(() => {
+      console.log(`codexwall refresh finished in ${Date.now() - started}ms`);
       refreshPromise = null;
     });
   }
   return refreshPromise;
+}
+
+async function health() {
+  const limits = await readLimits();
+  const updatedAt = Date.parse(limits.updated_at);
+  return {
+    ok: true,
+    updated_at: limits.updated_at,
+    data_age_seconds: Number.isNaN(updatedAt) ? null : Math.max(0, Math.round((Date.now() - updatedAt) / 1000)),
+    collector_mode: process.env.CODEX_COLLECTOR_MODE || "app-server",
+    refresh_auth_required: Boolean(refreshToken),
+    refresh_min_interval_seconds: Number.isFinite(refreshMinIntervalSeconds) ? refreshMinIntervalSeconds : 30,
+    uptime_seconds: Math.round((Date.now() - startedAt.getTime()) / 1000)
+  };
+}
+
+function latestApp() {
+  return {
+    version: process.env.APP_UPDATE_VERSION || "",
+    apk_url: process.env.APP_UPDATE_APK_URL || "",
+    page_url: process.env.APP_UPDATE_PAGE_URL || "",
+    notes: process.env.APP_UPDATE_NOTES || ""
+  };
+}
+
+function isRefreshAuthorized(req, url) {
+  if (!refreshToken) return true;
+  if (url.searchParams.get("token") === refreshToken) return true;
+  return req.headers.authorization === `Bearer ${refreshToken}`;
 }
 
 function isAuthorized(req) {

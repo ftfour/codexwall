@@ -15,6 +15,7 @@ class SettingsRepository(private val context: Context) {
     private object Keys {
         val dataMode = stringPreferencesKey("data_mode")
         val endpointUrl = stringPreferencesKey("endpoint_url")
+        val refreshToken = stringPreferencesKey("refresh_token")
         val accentColor = stringPreferencesKey("accent_color")
         val verticalPosition = stringPreferencesKey("vertical_position")
         val horizontalAlignment = stringPreferencesKey("horizontal_alignment")
@@ -32,6 +33,7 @@ class SettingsRepository(private val context: Context) {
         WallpaperSettings(
             dataMode = enumValue(prefs[Keys.dataMode], DataMode.DEMO),
             endpointUrl = prefs[Keys.endpointUrl].orEmpty(),
+            refreshToken = prefs[Keys.refreshToken].orEmpty(),
             accentColor = enumValue(prefs[Keys.accentColor], AccentColor.RED),
             verticalPosition = enumValue(prefs[Keys.verticalPosition], VerticalPosition.BOTTOM),
             horizontalAlignment = enumValue(prefs[Keys.horizontalAlignment], HorizontalAlignment.LEFT),
@@ -57,6 +59,7 @@ class SettingsRepository(private val context: Context) {
         context.codexDataStore.edit { prefs ->
             prefs[Keys.dataMode] = settings.dataMode.name
             prefs[Keys.endpointUrl] = settings.endpointUrl
+            prefs[Keys.refreshToken] = settings.refreshToken
             prefs[Keys.accentColor] = settings.accentColor.name
             prefs[Keys.verticalPosition] = settings.verticalPosition.name
             prefs[Keys.horizontalAlignment] = settings.horizontalAlignment.name

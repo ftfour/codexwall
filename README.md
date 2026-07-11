@@ -1,6 +1,6 @@
 # Codex Limits Wallpaper
 
-Minimal live wallpaper and home-screen widget for Huawei Pura 70 and other Android devices. The app shows Codex limit percentages, reset times, and the last successful update on a pure black OLED background.
+Minimal live wallpaper and home-screen widget for Huawei Pura 70 and other Android devices. The app shows Codex limit percentages as circular indicators, reset times, and the last successful update on a pure black OLED background.
 
 Package: `ru.ftfour.codexwallpaper`
 
@@ -9,7 +9,7 @@ Package: `ru.ftfour.codexwallpaper`
 - `MainActivity` is a lightweight settings screen with a live preview, demo data editor, server URL, connection test, accent/position/size controls, refresh interval, app-update check, and a direct live-wallpaper setup button.
 - `CodexWallpaperService` is a standard Android `WallpaperService` with a custom `Engine` that draws through `SurfaceHolder` and stops the minute timer when the wallpaper is not visible.
 - `CodexLimitsWidgetProvider` is a home-screen widget that shows the same saved/demo limits and includes a manual refresh button.
-- `WallpaperRenderer` owns Canvas rendering, responsive layout, progress bars, reset-time formatting, and local countdown calculation. It contains no network code.
+- `WallpaperRenderer` owns Canvas rendering, responsive layout, circular progress indicators, reset-time formatting, and local countdown calculation. It contains no network code.
 - `SettingsRepository` stores all settings and last known data in DataStore Preferences.
 - `CodexLimitsRepository` fetches JSON through OkHttp, validates it, saves only valid data, and keeps showing the last saved value if the server is unavailable.
 - `CodexSyncWorker` runs unique periodic WorkManager sync with network constraints. Supported intervals are 15 minutes, 30 minutes, 1 hour, and manual only.
@@ -19,7 +19,7 @@ No Google Play Services, Firebase, Accessibility Service, Notification Listener,
 
 ## Widget and updates
 
-Add the **Codex Limits** widget from the Android launcher widget picker. It uses the same demo/server mode and saved settings as the app. The widget refresh button runs the same configured refresh path as the settings screen. For the companion server's `/api/codex-limits` endpoint, manual refresh first calls `POST /api/codex-limits/refresh` so the server checks current Codex limits before the phone saves the returned JSON.
+Add the **Codex Limits** widget from the Android launcher widget picker. It uses the same demo/server mode and saved settings as the app, with circular percent indicators like the live wallpaper. The widget refresh button runs the same configured refresh path as the settings screen. For the companion server's `/api/codex-limits` endpoint, manual refresh first calls `POST /api/codex-limits/refresh` so the server checks current Codex limits before the phone saves the returned JSON. If your server sets `REFRESH_TOKEN`, enter the same value in the app's refresh-token field.
 
 The settings screen can check `ftfour/codexwall` GitHub Releases. If a release tag is newer than the installed `versionName`, the app shows an update button that opens the APK asset when one is attached, or the release page otherwise.
 

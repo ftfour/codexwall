@@ -56,9 +56,28 @@ If automatic collection is not available yet, the server still works through `/a
 
 ## Refresh endpoint
 
-`POST /api/codex-limits/refresh` runs the same collector as `collect-codex-limits.mjs`, saves fresh values to `data/limits.json`, and returns the updated JSON. If two refresh requests arrive at the same time, the server shares one in-flight collector run.
+`POST /api/codex-limits/refresh` runs the same collector as `collect-codex-limits.mjs`, saves fresh values to `data/limits.json`, and returns the updated JSON. If two refresh requests arrive at the same time, the server shares one in-flight collector run. `REFRESH_MIN_INTERVAL_SECONDS` prevents accidental repeated collector runs.
 
-The Android app calls this endpoint before `GET /api/codex-limits` when the user taps **Refresh now** or the widget refresh button. If an endpoint does not support `/refresh`, the app falls back to the normal GET behavior.
+If `REFRESH_TOKEN` is set, callers must send:
+
+```http
+Authorization: Bearer refresh-secret-for-phone
+```
+
+The Android app calls this endpoint before `GET /api/codex-limits` when the user taps **Refresh now** or the widget refresh button. Put the same token into the app's **Refresh token** field. If an endpoint does not support `/refresh`, the app falls back to the normal GET behavior.
+
+## App update manifest
+
+`GET /app/latest` can serve a tiny update manifest for the Android app:
+
+```env
+APP_UPDATE_VERSION=1.2.0
+APP_UPDATE_APK_URL=https://github.com/ftfour/codexwall/releases/download/v1.2.0/codex-limits-wallpaper-v1.2.0.apk
+APP_UPDATE_PAGE_URL=https://github.com/ftfour/codexwall/releases/tag/v1.2.0
+APP_UPDATE_NOTES=Latest Codex Limits Wallpaper release.
+```
+
+The app checks this endpoint first when the server URL points at `/api/codex-limits`, then falls back to GitHub Releases.
 
 ## Local run
 
@@ -97,6 +116,7 @@ Set strong values:
 ADMIN_USER=admin
 ADMIN_PASSWORD=very-long-password
 INTERNAL_TOKEN=another-long-secret
+REFRESH_TOKEN=refresh-secret-for-phone
 ```
 
 Restart:

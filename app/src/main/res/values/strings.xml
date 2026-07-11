@@ -6,6 +6,8 @@
     <string name="mode_demo">Demo data</string>
     <string name="mode_server">Server JSON</string>
     <string name="server_url">Server URL</string>
+    <string name="refresh_token">Refresh token</string>
+    <string name="refresh_token_hint">Optional server refresh token</string>
     <string name="test_connection">Test connection</string>
     <string name="demo_data">Demo data</string>
     <string name="five_hour_percent">Five-hour percent left</string>
@@ -54,6 +56,8 @@
     <string name="app_update_current">You are on the latest version.</string>
     <string name="app_update_failed">Could not check for updates.</string>
     <string name="app_update_button">Update app</string>
+    <string name="app_update_downloading">Downloading APK. Open the completed download to install.</string>
+    <string name="app_update_download_title">Codex Limits Wallpaper %1$s</string>
     <string name="last_successful_update">Last successful update</string>
     <string name="last_update_value">Last successful update: %1$s</string>
     <string name="battery_settings">Open app battery settings</string>

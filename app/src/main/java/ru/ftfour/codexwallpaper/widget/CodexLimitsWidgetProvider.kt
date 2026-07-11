@@ -6,6 +6,11 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.RectF
 import android.widget.RemoteViews
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -13,6 +18,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import ru.ftfour.codexwallpaper.R
+import ru.ftfour.codexwallpaper.data.AccentColor
 import ru.ftfour.codexwallpaper.data.CodexLimitsRepository
 import ru.ftfour.codexwallpaper.data.Formatters
 import java.time.Instant
@@ -37,7 +43,13 @@ class CodexLimitsWidgetProvider : AppWidgetProvider() {
         CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {
             try {
                 updateAllNow(context.applicationContext, context.getString(R.string.widget_updating))
-                CodexLimitsRepository(context.applicationContext).refreshFromConfiguredServer()
+                val result = CodexLimitsRepository(context.applicationContext).refreshFromConfiguredServer()
+                if (result.isFailure) {
+                    val message = result.exceptionOrNull()?.localizedMessage
+                        ?: context.getString(R.string.connection_failed)
+                    updateAllNow(context.applicationContext, message)
+                    return@launch
+                }
                 updateAllNow(context.applicationContext)
             } finally {
                 pendingResult.finish()
@@ -92,20 +104,18 @@ class CodexLimitsWidgetProvider : AppWidgetProvider() {
             )
 
             views.setOnClickPendingIntent(R.id.widget_refresh_button, refreshPendingIntent)
-            views.setTextViewText(
-                R.id.widget_five_percent,
-                context.getString(R.string.widget_percent_left, state.limits.fiveHourPercentLeft),
+            views.setImageViewBitmap(
+                R.id.widget_five_ring,
+                ringBitmap(context, state.limits.fiveHourPercentLeft, state.settings.accentColor),
             )
-            views.setProgressBar(R.id.widget_five_progress, 100, state.limits.fiveHourPercentLeft, false)
             views.setTextViewText(
                 R.id.widget_five_reset,
                 context.getString(R.string.widget_reset_in, Formatters.resetIn(Instant.now(), state.limits.fiveHourResetsAt)),
             )
-            views.setTextViewText(
-                R.id.widget_week_percent,
-                context.getString(R.string.widget_percent_left, state.limits.weeklyPercentLeft),
+            views.setImageViewBitmap(
+                R.id.widget_week_ring,
+                ringBitmap(context, state.limits.weeklyPercentLeft, state.settings.accentColor),
             )
-            views.setProgressBar(R.id.widget_week_progress, 100, state.limits.weeklyPercentLeft, false)
             views.setTextViewText(
                 R.id.widget_week_reset,
                 context.getString(R.string.widget_reset_at, Formatters.resetDate(state.limits.weeklyResetsAt, state.settings.use24HourFormat)),
@@ -119,6 +129,46 @@ class CodexLimitsWidgetProvider : AppWidgetProvider() {
                 }
             views.setTextViewText(R.id.widget_footer, footer)
             return views
+        }
+
+        private fun ringBitmap(context: Context, percent: Int, accentColor: AccentColor): Bitmap {
+            val density = context.resources.displayMetrics.density
+            val size = (96f * density).toInt().coerceAtLeast(96)
+            val stroke = 7f * density
+            val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+            val canvas = Canvas(bitmap)
+            val bounds = RectF(stroke / 2f, stroke / 2f, size - stroke / 2f, size - stroke / 2f)
+            val trackPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = Color.rgb(42, 42, 42)
+                style = Paint.Style.STROKE
+                strokeWidth = stroke
+                strokeCap = Paint.Cap.ROUND
+            }
+            val accentPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = accent(accentColor)
+                style = Paint.Style.STROKE
+                strokeWidth = stroke
+                strokeCap = Paint.Cap.ROUND
+            }
+            val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = Color.WHITE
+                textAlign = Paint.Align.CENTER
+                textSize = 24f * density
+                typeface = android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL)
+            }
+            canvas.drawArc(bounds, -90f, 360f, false, trackPaint)
+            canvas.drawArc(bounds, -90f, 360f * percent.coerceIn(0, 100) / 100f, false, accentPaint)
+            val text = "$percent%"
+            val y = size / 2f - (textPaint.descent() + textPaint.ascent()) / 2f
+            canvas.drawText(text, size / 2f, y, textPaint)
+            return bitmap
+        }
+
+        private fun accent(color: AccentColor): Int = when (color) {
+            AccentColor.RED -> Color.rgb(229, 57, 53)
+            AccentColor.BLUE -> Color.rgb(66, 165, 245)
+            AccentColor.GREEN -> Color.rgb(102, 187, 106)
+            AccentColor.WHITE -> Color.WHITE
         }
     }
 }

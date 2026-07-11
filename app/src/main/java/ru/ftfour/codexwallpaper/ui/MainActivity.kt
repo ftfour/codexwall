@@ -1,7 +1,9 @@
 package ru.ftfour.codexwallpaper.ui
 
 import android.app.WallpaperManager
+import android.app.DownloadManager
 import android.content.ComponentName
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -49,6 +51,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var appUpdateRepository: AppUpdateRepository
     private lateinit var preview: WallpaperPreviewView
     private lateinit var endpointInput: EditText
+    private lateinit var refreshTokenInput: EditText
     private lateinit var errorText: TextView
     private lateinit var lastUpdatedText: TextView
     private lateinit var updateStatusText: TextView
@@ -108,11 +111,23 @@ class MainActivity : AppCompatActivity() {
             }
         }
         column.addView(endpointInput)
+        column.addView(label(R.string.refresh_token))
+        refreshTokenInput = EditText(this).apply {
+            hint = getString(R.string.refresh_token_hint)
+            setSingleLine(true)
+            onFocusChangeListener = View.OnFocusChangeListener { _, hasFocus ->
+                if (!hasFocus) updateSettings(currentSettings.copy(refreshToken = text.toString().trim()))
+            }
+        }
+        column.addView(refreshTokenInput)
         column.addView(button(R.string.test_connection) {
-            updateSettings(currentSettings.copy(endpointUrl = endpointInput.text.toString().trim()))
+            updateSettings(currentSettings.copy(
+                endpointUrl = endpointInput.text.toString().trim(),
+                refreshToken = refreshTokenInput.text.toString().trim(),
+            ))
             lifecycleScope.launch {
                 showStatus(getString(R.string.checking))
-                limitsRepository.testConnection(endpointInput.text.toString()).fold(
+                limitsRepository.testConnection(endpointInput.text.toString(), refreshTokenInput.text.toString()).fold(
                     onSuccess = { showStatus(getString(R.string.connection_ok)) },
                     onFailure = { showError(it.localizedMessage ?: getString(R.string.connection_failed)) },
                 )
@@ -180,7 +195,10 @@ class MainActivity : AppCompatActivity() {
 
         column.addView(button(R.string.refresh_now) {
             lifecycleScope.launch {
-                val settings = currentSettings.copy(endpointUrl = endpointInput.text.toString().trim())
+                val settings = currentSettings.copy(
+                    endpointUrl = endpointInput.text.toString().trim(),
+                    refreshToken = refreshTokenInput.text.toString().trim(),
+                )
                 currentSettings = settings
                 settingsRepository.updateSettings(settings)
                 CodexSyncWorker.reschedule(applicationContext)
@@ -217,6 +235,7 @@ class MainActivity : AppCompatActivity() {
             currentSettings = settings
             modeSpinner.setSelection(settings.dataMode.ordinal)
             endpointInput.setText(settings.endpointUrl)
+            refreshTokenInput.setText(settings.refreshToken)
             accentSpinner.setSelection(settings.accentColor.ordinal)
             positionSpinner.setSelection(settings.verticalPosition.ordinal)
             alignmentSpinner.setSelection(settings.horizontalAlignment.ordinal)
@@ -283,7 +302,7 @@ class MainActivity : AppCompatActivity() {
             updateStatusText.text = getString(R.string.checking)
             installUpdateButton.visibility = View.GONE
             latestAppUpdate = null
-            appUpdateRepository.checkLatestRelease(BuildConfig.VERSION_NAME).fold(
+            appUpdateRepository.checkLatestRelease(BuildConfig.VERSION_NAME, currentSettings.endpointUrl).fold(
                 onSuccess = { update ->
                     latestAppUpdate = update
                     if (update == null) {
@@ -303,7 +322,14 @@ class MainActivity : AppCompatActivity() {
     private fun openAppUpdate() {
         val update = latestAppUpdate ?: return
         runCatching {
-            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(update.downloadUrl)))
+            val request = DownloadManager.Request(Uri.parse(update.downloadUrl))
+                .setTitle(getString(R.string.app_update_download_title, update.version))
+                .setMimeType("application/vnd.android.package-archive")
+                .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                .setDestinationInExternalPublicDir(android.os.Environment.DIRECTORY_DOWNLOADS, "codex-limits-wallpaper-${update.version}.apk")
+            val manager = getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+            manager.enqueue(request)
+            updateStatusText.text = getString(R.string.app_update_downloading)
         }.getOrElse {
             startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(update.pageUrl)))
         }
