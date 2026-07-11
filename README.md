@@ -1,19 +1,27 @@
 # Codex Limits Wallpaper
 
-Minimal live wallpaper for Huawei Pura 70 and other Android devices. The wallpaper shows Codex limit percentages, reset times, and the last successful update on a pure black OLED background.
+Minimal live wallpaper and home-screen widget for Huawei Pura 70 and other Android devices. The app shows Codex limit percentages, reset times, and the last successful update on a pure black OLED background.
 
 Package: `ru.ftfour.codexwallpaper`
 
 ## Architecture
 
-- `MainActivity` is a lightweight settings screen with a live preview, demo data editor, server URL, connection test, accent/position/size controls, refresh interval, and a direct live-wallpaper setup button.
+- `MainActivity` is a lightweight settings screen with a live preview, demo data editor, server URL, connection test, accent/position/size controls, refresh interval, app-update check, and a direct live-wallpaper setup button.
 - `CodexWallpaperService` is a standard Android `WallpaperService` with a custom `Engine` that draws through `SurfaceHolder` and stops the minute timer when the wallpaper is not visible.
+- `CodexLimitsWidgetProvider` is a home-screen widget that shows the same saved/demo limits and includes a manual refresh button.
 - `WallpaperRenderer` owns Canvas rendering, responsive layout, progress bars, reset-time formatting, and local countdown calculation. It contains no network code.
 - `SettingsRepository` stores all settings and last known data in DataStore Preferences.
 - `CodexLimitsRepository` fetches JSON through OkHttp, validates it, saves only valid data, and keeps showing the last saved value if the server is unavailable.
 - `CodexSyncWorker` runs unique periodic WorkManager sync with network constraints. Supported intervals are 15 minutes, 30 minutes, 1 hour, and manual only.
+- `AppUpdateRepository` checks the latest GitHub release and exposes an update button when a newer APK release is available.
 
 No Google Play Services, Firebase, Accessibility Service, Notification Listener, embedded OpenAI credentials, cookies, or tokens are used.
+
+## Widget and updates
+
+Add the **Codex Limits** widget from the Android launcher widget picker. It uses the same demo/server mode and saved settings as the app. The widget refresh button runs the same configured refresh path as the settings screen.
+
+The settings screen can check `ftfour/codexwall` GitHub Releases. If a release tag is newer than the installed `versionName`, the app shows an update button that opens the APK asset when one is attached, or the release page otherwise.
 
 ## JSON endpoint
 
@@ -70,6 +78,10 @@ Release AAB path:
 ```text
 app/build/outputs/bundle/release/app-release.aab
 ```
+
+## GitHub releases
+
+Push a version tag such as `v1.1.0` to run `.github/workflows/android-release.yml`. The workflow runs unit tests and attaches an APK to the GitHub Release. If signing secrets are configured (`ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`), it publishes a signed release APK; otherwise it falls back to a debug APK. Signed local APK/AAB builds still use the keystore flow below.
 
 ## Release signing
 

@@ -21,8 +21,11 @@ import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import ru.ftfour.codexwallpaper.BuildConfig
 import ru.ftfour.codexwallpaper.R
 import ru.ftfour.codexwallpaper.data.AccentColor
+import ru.ftfour.codexwallpaper.data.AppUpdate
+import ru.ftfour.codexwallpaper.data.AppUpdateRepository
 import ru.ftfour.codexwallpaper.data.CodexLimits
 import ru.ftfour.codexwallpaper.data.CodexLimitsRepository
 import ru.ftfour.codexwallpaper.data.ContentScale
@@ -36,16 +39,20 @@ import ru.ftfour.codexwallpaper.data.WallpaperSettings
 import ru.ftfour.codexwallpaper.sync.CodexSyncWorker
 import ru.ftfour.codexwallpaper.wallpaper.CodexWallpaperService
 import ru.ftfour.codexwallpaper.wallpaper.WallpaperPreviewView
+import ru.ftfour.codexwallpaper.widget.CodexLimitsWidgetProvider
 import java.time.Instant
 import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
     private lateinit var settingsRepository: SettingsRepository
     private lateinit var limitsRepository: CodexLimitsRepository
+    private lateinit var appUpdateRepository: AppUpdateRepository
     private lateinit var preview: WallpaperPreviewView
     private lateinit var endpointInput: EditText
     private lateinit var errorText: TextView
     private lateinit var lastUpdatedText: TextView
+    private lateinit var updateStatusText: TextView
+    private lateinit var installUpdateButton: Button
     private lateinit var fivePercentInput: EditText
     private lateinit var fiveResetInput: EditText
     private lateinit var weekPercentInput: EditText
@@ -54,11 +61,13 @@ class MainActivity : AppCompatActivity() {
     private lateinit var showLastUpdatedSwitch: SwitchCompat
     private var currentSettings = WallpaperSettings()
     private var bindingControls = true
+    private var latestAppUpdate: AppUpdate? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         settingsRepository = SettingsRepository(applicationContext)
         limitsRepository = CodexLimitsRepository(applicationContext, settingsRepository)
+        appUpdateRepository = AppUpdateRepository()
         setContentView(createContent())
         bindState()
     }
@@ -177,8 +186,14 @@ class MainActivity : AppCompatActivity() {
                 CodexSyncWorker.reschedule(applicationContext)
                 showStatus(getString(R.string.updating))
                 limitsRepository.refreshFromConfiguredServer().fold(
-                    onSuccess = { showStatus(getString(R.string.updated)) },
-                    onFailure = { showError(it.localizedMessage ?: getString(R.string.connection_failed)) },
+                    onSuccess = {
+                        CodexLimitsWidgetProvider.updateAll(applicationContext)
+                        showStatus(getString(R.string.updated))
+                    },
+                    onFailure = {
+                        CodexLimitsWidgetProvider.updateAll(applicationContext)
+                        showError(it.localizedMessage ?: getString(R.string.connection_failed))
+                    },
                 )
             }
         })
@@ -188,6 +203,13 @@ class MainActivity : AppCompatActivity() {
         column.addView(lastUpdatedText)
         column.addView(errorText)
         column.addView(button(R.string.battery_settings) { openBatterySettings() })
+        column.addView(button(R.string.check_app_update) { checkAppUpdate() })
+        updateStatusText = TextView(this).apply { setTextColor(0xff5f6368.toInt()) }
+        column.addView(updateStatusText)
+        installUpdateButton = button(R.string.app_update_button) { openAppUpdate() }.apply {
+            visibility = View.GONE
+        }
+        column.addView(installUpdateButton)
 
         lifecycleScope.launch {
             val settings = settingsRepository.settingsFlow.first()
@@ -241,6 +263,7 @@ class MainActivity : AppCompatActivity() {
             }
             settingsRepository.saveDemoLimits(limits)
             updateSettings(currentSettings.copy(dataMode = DataMode.DEMO), reschedule = true)
+            CodexLimitsWidgetProvider.updateAll(applicationContext)
             showStatus(getString(R.string.saved))
         }
     }
@@ -251,6 +274,38 @@ class MainActivity : AppCompatActivity() {
         lifecycleScope.launch {
             settingsRepository.updateSettings(settings)
             if (reschedule) CodexSyncWorker.reschedule(applicationContext)
+            CodexLimitsWidgetProvider.updateAll(applicationContext)
+        }
+    }
+
+    private fun checkAppUpdate() {
+        lifecycleScope.launch {
+            updateStatusText.text = getString(R.string.checking)
+            installUpdateButton.visibility = View.GONE
+            latestAppUpdate = null
+            appUpdateRepository.checkLatestRelease(BuildConfig.VERSION_NAME).fold(
+                onSuccess = { update ->
+                    latestAppUpdate = update
+                    if (update == null) {
+                        updateStatusText.text = getString(R.string.app_update_current)
+                    } else {
+                        updateStatusText.text = getString(R.string.app_update_available, update.version)
+                        installUpdateButton.visibility = View.VISIBLE
+                    }
+                },
+                onFailure = {
+                    updateStatusText.text = getString(R.string.app_update_failed)
+                },
+            )
+        }
+    }
+
+    private fun openAppUpdate() {
+        val update = latestAppUpdate ?: return
+        runCatching {
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(update.downloadUrl)))
+        }.getOrElse {
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(update.pageUrl)))
         }
     }
 

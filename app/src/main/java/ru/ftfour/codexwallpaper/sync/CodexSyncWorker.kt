@@ -16,6 +16,7 @@ import ru.ftfour.codexwallpaper.data.CodexLimitsRepository
 import ru.ftfour.codexwallpaper.data.RefreshInterval
 import ru.ftfour.codexwallpaper.data.SettingsRepository
 import ru.ftfour.codexwallpaper.data.UrlValidator
+import ru.ftfour.codexwallpaper.widget.CodexLimitsWidgetProvider
 import java.util.concurrent.TimeUnit
 
 class CodexSyncWorker(
@@ -25,7 +26,10 @@ class CodexSyncWorker(
     override suspend fun doWork(): Result {
         val repository = CodexLimitsRepository(applicationContext)
         return repository.refreshFromConfiguredServer().fold(
-            onSuccess = { Result.success() },
+            onSuccess = {
+                CodexLimitsWidgetProvider.updateAll(applicationContext)
+                Result.success()
+            },
             onFailure = { Result.retry() },
         )
     }

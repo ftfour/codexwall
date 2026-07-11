@@ -6,6 +6,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import ru.ftfour.codexwallpaper.sync.CodexSyncWorker
+import ru.ftfour.codexwallpaper.widget.CodexLimitsWidgetProvider
 
 class CodexWallpaperApp : Application() {
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -14,6 +15,7 @@ class CodexWallpaperApp : Application() {
         super.onCreate()
         appScope.launch {
             CodexSyncWorker.reschedule(this@CodexWallpaperApp)
+            CodexLimitsWidgetProvider.updateAll(this@CodexWallpaperApp)
         }
     }
 }
